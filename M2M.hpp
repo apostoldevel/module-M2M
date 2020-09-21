@@ -74,7 +74,7 @@ namespace Apostol {
             void SetObjectData(CHTTPServerConnection *AConnection, const CString &Token, const CJSON &Payload,
                                const CString &Agent);
 
-            static bool CheckAuthorizationData(CRequest *ARequest, CAuthorization &Authorization);
+            static bool CheckAuthorizationData(CHTTPRequest *ARequest, CAuthorization &Authorization);
 
             void VerifyToken(const CString &Token);
 
@@ -86,8 +86,8 @@ namespace Apostol {
 
             void DoVerbose(CSocketEvent *Sender, CTCPConnection *AConnection, LPCTSTR AFormat, va_list args);
             bool DoProxyExecute(CTCPConnection *AConnection);
-            void DoProxyException(CTCPConnection *AConnection, Delphi::Exception::Exception *AException);
-            void DoEventHandlerException(CPollEventHandler *AHandler, Delphi::Exception::Exception *AException);
+            void DoProxyException(CTCPConnection *AConnection, const Delphi::Exception::Exception &E);
+            void DoEventHandlerException(CPollEventHandler *AHandler, const Delphi::Exception::Exception &E);
 
             void DoProxyConnected(CObject *Sender);
             void DoProxyDisconnected(CObject *Sender);
@@ -109,7 +109,7 @@ namespace Apostol {
             void Heartbeat() override;
 
             bool Enabled() override;
-            bool CheckConnection(CHTTPServerConnection *AConnection) override;
+            bool CheckLocation(const CLocation &Location) override;
 
         };
     }

@@ -131,15 +131,15 @@ namespace Apostol {
             m_pMethods->AddObject(_T("PATCH")  , (CObject *) new CMethodHandler(false, [this](auto && Connection) { MethodNotAllowed(Connection); }));
             m_pMethods->AddObject(_T("CONNECT"), (CObject *) new CMethodHandler(false, [this](auto && Connection) { MethodNotAllowed(Connection); }));
 #else
-            m_pMethods->AddObject(_T("POST")   , (CObject *) new CMethodHandler(true , std::bind(&CM2M::DoProxy, this, _1)));
-            m_pMethods->AddObject(_T("OPTIONS"), (CObject *) new CMethodHandler(true , std::bind(&CM2M::DoOptions, this, _1)));
-            m_pMethods->AddObject(_T("GET")    , (CObject *) new CMethodHandler(false, std::bind(&CM2M::MethodNotAllowed, this, _1)));
-            m_pMethods->AddObject(_T("HEAD")   , (CObject *) new CMethodHandler(false, std::bind(&CM2M::MethodNotAllowed, this, _1)));
-            m_pMethods->AddObject(_T("PUT")    , (CObject *) new CMethodHandler(false, std::bind(&CM2M::MethodNotAllowed, this, _1)));
-            m_pMethods->AddObject(_T("DELETE") , (CObject *) new CMethodHandler(false, std::bind(&CM2M::MethodNotAllowed, this, _1)));
-            m_pMethods->AddObject(_T("TRACE")  , (CObject *) new CMethodHandler(false, std::bind(&CM2M::MethodNotAllowed, this, _1)));
-            m_pMethods->AddObject(_T("PATCH")  , (CObject *) new CMethodHandler(false, std::bind(&CM2M::MethodNotAllowed, this, _1)));
-            m_pMethods->AddObject(_T("CONNECT"), (CObject *) new CMethodHandler(false, std::bind(&CM2M::MethodNotAllowed, this, _1)));
+            m_pMethods->AddObject(_T("POST")   , (CObject *) new CMethodHandler(true , std::bind(&CSBAcquiring::DoProxy, this, _1)));
+            m_pMethods->AddObject(_T("OPTIONS"), (CObject *) new CMethodHandler(true , std::bind(&CSBAcquiring::DoOptions, this, _1)));
+            m_pMethods->AddObject(_T("GET")    , (CObject *) new CMethodHandler(false, std::bind(&CSBAcquiring::MethodNotAllowed, this, _1)));
+            m_pMethods->AddObject(_T("HEAD")   , (CObject *) new CMethodHandler(false, std::bind(&CSBAcquiring::MethodNotAllowed, this, _1)));
+            m_pMethods->AddObject(_T("PUT")    , (CObject *) new CMethodHandler(false, std::bind(&CSBAcquiring::MethodNotAllowed, this, _1)));
+            m_pMethods->AddObject(_T("DELETE") , (CObject *) new CMethodHandler(false, std::bind(&CSBAcquiring::MethodNotAllowed, this, _1)));
+            m_pMethods->AddObject(_T("TRACE")  , (CObject *) new CMethodHandler(false, std::bind(&CSBAcquiring::MethodNotAllowed, this, _1)));
+            m_pMethods->AddObject(_T("PATCH")  , (CObject *) new CMethodHandler(false, std::bind(&CSBAcquiring::MethodNotAllowed, this, _1)));
+            m_pMethods->AddObject(_T("CONNECT"), (CObject *) new CMethodHandler(false, std::bind(&CSBAcquiring::MethodNotAllowed, this, _1)));
 #endif
         }
         //--------------------------------------------------------------------------------------------------------------
@@ -188,7 +188,7 @@ namespace Apostol {
 
                 LConnection->CloseConnection(true);
 
-                LConnection->Reply()->ContentType = CReply::json;
+                LConnection->Reply()->ContentType = CHTTPReply::json;
                 LConnection->Reply()->Content = Json.ToString();
 
                 LConnection->SendReply(LReply->Status, nullptr, true);
@@ -198,7 +198,7 @@ namespace Apostol {
         }
         //--------------------------------------------------------------------------------------------------------------
 
-        void CM2M::DoProxyException(CTCPConnection *AConnection, Delphi::Exception::Exception *AException) {
+        void CM2M::DoProxyException(CTCPConnection *AConnection, const Delphi::Exception::Exception &E) {
 
             auto LProxyConnection = dynamic_cast<CHTTPClientConnection*> (AConnection);
             auto LProxy = dynamic_cast<CHTTPProxy*> (LProxyConnection->Client());
@@ -209,23 +209,23 @@ namespace Apostol {
 
             DebugReply(LReply);
 
-            LConnection->SendStockReply(CReply::internal_server_error, true);
+            LConnection->SendStockReply(CHTTPReply::internal_server_error, true);
 
-            Log()->Error(APP_LOG_EMERG, 0, "[%s:%d] %s", LProxy->Host().c_str(), LProxy->Port(), AException->what());
+            Log()->Error(APP_LOG_EMERG, 0, "[%s:%d] %s", LProxy->Host().c_str(), LProxy->Port(), E.what());
         }
         //--------------------------------------------------------------------------------------------------------------
 
-        void CM2M::DoEventHandlerException(CPollEventHandler *AHandler, Delphi::Exception::Exception *AException) {
+        void CM2M::DoEventHandlerException(CPollEventHandler *AHandler, const Delphi::Exception::Exception &E) {
             auto LConnection = dynamic_cast<CHTTPClientConnection*> (AHandler->Binding());
             auto LProxy = dynamic_cast<CHTTPProxy*> (LConnection->Client());
 
             if (Assigned(LProxy)) {
                 auto LReply = LProxy->Connection()->Reply();
-                ExceptionToJson(0, *AException, LReply->Content);
-                LProxy->Connection()->SendReply(CReply::internal_server_error, nullptr, true);
+                ExceptionToJson(0, E, LReply->Content);
+                LProxy->Connection()->SendReply(CHTTPReply::internal_server_error, nullptr, true);
             }
 
-            Log()->Error(APP_LOG_EMERG, 0, AException->what());
+            Log()->Error(APP_LOG_EMERG, 0, E.what());
         }
         //--------------------------------------------------------------------------------------------------------------
 
@@ -294,9 +294,9 @@ namespace Apostol {
                 }
             };
 
-            auto OnException = [this](CPQPollQuery *APollQuery, Delphi::Exception::Exception *AException) {
+            auto OnException = [this](CPQPollQuery *APollQuery, const Delphi::Exception::Exception &E) {
                 m_CheckDate = Now() + (CDateTime) 60 / SecsPerDay;
-                Log()->Error(APP_LOG_EMERG, 0, AException->what());
+                Log()->Error(APP_LOG_EMERG, 0, E.what());
             };
 
             const auto& Host = GetHost(AConnection);
@@ -353,7 +353,7 @@ namespace Apostol {
         }
         //--------------------------------------------------------------------------------------------------------------
 
-        bool CM2M::CheckAuthorizationData(CRequest *ARequest, CAuthorization &Authorization) {
+        bool CM2M::CheckAuthorizationData(CHTTPRequest *ARequest, CAuthorization &Authorization) {
 
             const auto &LHeaders = ARequest->Headers;
             const auto &LCookies = ARequest->Cookies;
@@ -397,15 +397,15 @@ namespace Apostol {
                 if (Authorization.Schema == CAuthorization::asBasic)
                     AConnection->Data().Values("Authorization", "Basic");
 
-                ReplyError(AConnection, CReply::unauthorized, "Unauthorized.");
+                ReplyError(AConnection, CHTTPReply::unauthorized, "Unauthorized.");
             } catch (jwt::token_expired_exception &e) {
-                ReplyError(AConnection, CReply::forbidden, e.what());
+                ReplyError(AConnection, CHTTPReply::forbidden, e.what());
             } catch (jwt::token_verification_exception &e) {
-                ReplyError(AConnection, CReply::bad_request, e.what());
+                ReplyError(AConnection, CHTTPReply::bad_request, e.what());
             } catch (CAuthorizationError &e) {
-                ReplyError(AConnection, CReply::bad_request, e.what());
+                ReplyError(AConnection, CHTTPReply::bad_request, e.what());
             } catch (std::exception &e) {
-                ReplyError(AConnection, CReply::bad_request, e.what());
+                ReplyError(AConnection, CHTTPReply::bad_request, e.what());
             }
 
             return false;
@@ -417,7 +417,7 @@ namespace Apostol {
             auto LRequest = AConnection->Request();
             auto LReply = AConnection->Reply();
 
-            LReply->ContentType = CReply::json;
+            LReply->ContentType = CHTTPReply::json;
 
             auto LProxy = GetProxy(AConnection);
             auto LProxyRequest = LProxy->Request();
@@ -426,7 +426,7 @@ namespace Apostol {
             SplitColumns(LRequest->Location.pathname, LRouts, '/');
 
             if (LRouts.Count() < 2) {
-                AConnection->SendStockReply(CReply::not_found);
+                AConnection->SendStockReply(CHTTPReply::not_found);
                 return;
             }
 
@@ -460,7 +460,7 @@ namespace Apostol {
             CSOAPProtocol::JSONToSOAP(Action, Json, LProxyRequest->Content);
             LProxyRequest->CloseConnection = true;
 
-            CRequest::Prepare(LProxyRequest, "POST", Location.pathname.c_str(), "application/soap+xml; charset=utf-8");
+            CHTTPRequest::Prepare(LProxyRequest, "POST", Location.pathname.c_str(), "application/soap+xml; charset=utf-8");
             LProxyRequest->AddHeader("Authorization", "Bearer " + m_APIKey);
 
             DebugRequest(LProxyRequest);
@@ -492,8 +492,7 @@ namespace Apostol {
         }
         //--------------------------------------------------------------------------------------------------------------
 
-        bool CM2M::CheckConnection(CHTTPServerConnection *AConnection) {
-            const auto& Location = AConnection->Request()->Location;
+        bool CM2M::CheckLocation(const CLocation &Location) {
             return Location.pathname.SubString(0, 5) == _T("/m2m/");
         }
     }
