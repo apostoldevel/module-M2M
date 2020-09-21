@@ -108,6 +108,8 @@ namespace Apostol {
         //--------------------------------------------------------------------------------------------------------------
 
         CM2M::CM2M(CModuleProcess *AProcess) : CApostolModule(AProcess, "m2m") {
+            m_Headers.Add("Authorization");
+
             CM2M::InitMethods();
 #ifdef _DEBUG
             m_HeartbeatInterval = (CDateTime) 15 / SecsPerDay; // 15 sec
