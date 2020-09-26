@@ -276,47 +276,6 @@ namespace Apostol {
         }
         //--------------------------------------------------------------------------------------------------------------
 
-        void CM2M::SetObjectData(CHTTPServerConnection *AConnection, const CString &Token, const CJSON &Payload,
-                                         const CString &Agent) {
-
-            auto OnExecuted = [this](CPQPollQuery *APollQuery) {
-
-                CPQResult *Result;
-
-                try {
-                    for (int I = 0; I < APollQuery->Count(); I++) {
-                        Result = APollQuery->Results(I);
-
-                        if (Result->ExecStatus() != PGRES_TUPLES_OK)
-                            throw Delphi::Exception::EDBError(Result->GetErrorMessage());
-                    }
-                } catch (std::exception &e) {
-                    m_CheckDate = Now() + (CDateTime) 60 / SecsPerDay;
-                    Log()->Error(APP_LOG_EMERG, 0, e.what());
-                }
-            };
-
-            auto OnException = [this](CPQPollQuery *APollQuery, const Delphi::Exception::Exception &E) {
-                m_CheckDate = Now() + (CDateTime) 60 / SecsPerDay;
-                Log()->Error(APP_LOG_EMERG, 0, E.what());
-            };
-
-            const auto& Host = GetHost(AConnection);
-
-            CStringList SQL;
-
-            SQL.Add(CString().Format("SELECT * FROM daemon.fetch(%s, '%s', '%s'::jsonb, %s, %s);",
-                                     PQQuoteLiteral(Token).c_str(),
-                                     "/object/data/set",
-                                     Payload.ToString().c_str(),
-                                     PQQuoteLiteral(Agent).c_str(),
-                                     PQQuoteLiteral(Host).c_str()
-            ));
-
-            ExecSQL(SQL, AConnection, OnExecuted, OnException);
-        }
-        //--------------------------------------------------------------------------------------------------------------
-
         void CM2M::VerifyToken(const CString &Token) {
 
             auto decoded = jwt::decode(Token);

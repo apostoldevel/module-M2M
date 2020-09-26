@@ -71,9 +71,6 @@ namespace Apostol {
 
             void InitMethods() override;
 
-            void SetObjectData(CHTTPServerConnection *AConnection, const CString &Token, const CJSON &Payload,
-                               const CString &Agent);
-
             static bool CheckAuthorizationData(CHTTPRequest *ARequest, CAuthorization &Authorization);
 
             void VerifyToken(const CString &Token);
