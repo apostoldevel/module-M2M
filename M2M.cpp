@@ -176,15 +176,10 @@ namespace Apostol {
                 CSOAPProtocol::SOAPToJSON(Action, LReply->Content, Json);
 
                 if (LRouts.Count() >= 3 && LRouts[2] == "SendMessage") {
-
                     const auto& SendMessageResult = Json["SendMessageResult"].AsString();
-
                     if (!SendMessageResult.IsEmpty()) {
-
                         CJSON Payload;
                         Payload.Object().AddPair("SendMessageResult", SendMessageResult);
-
-                        //SetObjectData(LConnection, Token, Payload, Agent);
                     }
                 }
 
@@ -201,16 +196,14 @@ namespace Apostol {
         //--------------------------------------------------------------------------------------------------------------
 
         void CM2M::DoProxyException(CTCPConnection *AConnection, const Delphi::Exception::Exception &E) {
-
-            auto LProxyConnection = dynamic_cast<CHTTPClientConnection*> (AConnection);
-            auto LProxy = dynamic_cast<CHTTPProxy*> (LProxyConnection->Client());
-
+            auto LProxyConnection = dynamic_cast<CHTTPClientConnection *> (AConnection);
+            auto LProxy = dynamic_cast<CHTTPProxy *> (LProxyConnection->Client());
             auto LConnection = LProxy->Connection();
-
             auto LReply = LProxyConnection->Reply();
 
             DebugReply(LReply);
 
+            ExceptionToJson(0, E, LReply->Content);
             LConnection->SendStockReply(CHTTPReply::internal_server_error, true);
 
             Log()->Error(APP_LOG_EMERG, 0, "[%s:%d] %s", LProxy->Host().c_str(), LProxy->Port(), E.what());
@@ -218,16 +211,8 @@ namespace Apostol {
         //--------------------------------------------------------------------------------------------------------------
 
         void CM2M::DoEventHandlerException(CPollEventHandler *AHandler, const Delphi::Exception::Exception &E) {
-            auto LConnection = dynamic_cast<CHTTPClientConnection*> (AHandler->Binding());
-            auto LProxy = dynamic_cast<CHTTPProxy*> (LConnection->Client());
-
-            if (Assigned(LProxy)) {
-                auto LReply = LProxy->Connection()->Reply();
-                ExceptionToJson(0, E, LReply->Content);
-                LProxy->Connection()->SendReply(CHTTPReply::internal_server_error, nullptr, true);
-            }
-
-            Log()->Error(APP_LOG_EMERG, 0, E.what());
+            auto LProxyConnection = dynamic_cast<CHTTPClientConnection *> (AHandler->Binding());
+            DoProxyException(LProxyConnection, E);
         }
         //--------------------------------------------------------------------------------------------------------------
 
