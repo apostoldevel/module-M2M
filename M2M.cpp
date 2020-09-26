@@ -392,8 +392,8 @@ namespace Apostol {
             }
 
             CAuthorization LAuthorization;
-            //if (!CheckAuthorization(AConnection, LAuthorization))
-            //    return;
+            if (!CheckAuthorization(AConnection, LAuthorization))
+                return;
 
             const auto& Action = LRouts[1];
 
