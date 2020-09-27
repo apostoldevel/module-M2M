@@ -107,17 +107,9 @@ namespace Apostol {
 
         //--------------------------------------------------------------------------------------------------------------
 
-        CM2M::CM2M(CModuleProcess *AProcess) : CApostolModule(AProcess, "m2m") {
+        CM2M::CM2M(CModuleProcess *AProcess) : CApostolModule(AProcess, "m2m", "worker/m2m") {
             m_Headers.Add("Authorization");
-
             CM2M::InitMethods();
-#ifdef _DEBUG
-            m_HeartbeatInterval = (CDateTime) 15 / SecsPerDay; // 15 sec
-#else
-            m_HeartbeatInterval = (CDateTime) 30 / SecsPerDay; // 30 sec
-#endif
-            m_FixedDate = Now();
-            m_CheckDate = Now();
         }
         //--------------------------------------------------------------------------------------------------------------
 
@@ -380,6 +372,13 @@ namespace Apostol {
             if (!CheckAuthorization(AConnection, LAuthorization))
                 return;
 
+            const auto& LProfile = LRequest->Params["profile"];
+            const auto& profile = LProfile.IsEmpty() ? "main" : LProfile;
+
+            const auto& uri = m_Profiles[profile].Value()["uri"];
+            const auto& apikey = m_Profiles[profile].Value()["apikey"];
+            const auto& naming = m_Profiles[profile].Value()["naming"];
+
             const auto& Action = LRouts[1];
 
             AConnection->Data().Values("Token", LAuthorization.Token);
@@ -390,7 +389,7 @@ namespace Apostol {
             CJSON Json;
             ContentToJson(LRequest, Json);
 
-            CLocation Location(m_URI);
+            CLocation Location(uri);
 
             LProxy->Host() = Location.hostname;
             LProxy->Port(Location.port);
@@ -407,7 +406,7 @@ namespace Apostol {
             LProxyRequest->CloseConnection = true;
 
             CHTTPRequest::Prepare(LProxyRequest, "POST", Location.pathname.c_str(), "application/soap+xml; charset=utf-8");
-            LProxyRequest->AddHeader("Authorization", "Bearer " + m_APIKey);
+            LProxyRequest->AddHeader("Authorization", "Bearer " + apikey);
 
             DebugRequest(LProxyRequest);
 
@@ -415,13 +414,16 @@ namespace Apostol {
         }
         //--------------------------------------------------------------------------------------------------------------
 
+        void CM2M::InitConfig(const CIniFile &IniFile, const CString &Profile, CStringList &Config) {
+            Config.AddPair("uri", IniFile.ReadString(Profile, "uri", "https://api.mcommunicator.ru/m2m/m2m_api.asmx"));
+            Config.AddPair("apikey", IniFile.ReadString(Profile, "apikey", ""));
+            Config.AddPair("naming", IniFile.ReadString(Profile, "naming", ""));
+        }
+        //--------------------------------------------------------------------------------------------------------------
+
         void CM2M::Initialization(CModuleProcess *AProcess) {
-
-            m_URI = Config()->IniFile().ReadString("m2m", "uri", "https://api.mcommunicator.ru/m2m/m2m_api.asmx");
-            m_APIKey = Config()->IniFile().ReadString("m2m", "key", "");
-            m_Naming = Config()->IniFile().ReadString("m2m", "naming", "");
-
             CApostolModule::Initialization(AProcess);
+            LoadConfig(Config()->IniFile().ReadString(SectionName().c_str(), "config", "conf/m2m.conf"), m_Profiles, InitConfig);
         }
         //--------------------------------------------------------------------------------------------------------------
 
@@ -433,7 +435,7 @@ namespace Apostol {
 
         bool CM2M::Enabled() {
             if (m_ModuleStatus == msUnknown)
-                m_ModuleStatus = Config()->IniFile().ReadBool("worker/m2m", "enable", false) ? msEnabled : msDisabled;
+                m_ModuleStatus = Config()->IniFile().ReadBool(SectionName().c_str(), "enable", false) ? msEnabled : msDisabled;
             return m_ModuleStatus == msEnabled;
         }
         //--------------------------------------------------------------------------------------------------------------

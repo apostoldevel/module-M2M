@@ -54,20 +54,11 @@ namespace Apostol {
         class CM2M: public CApostolModule {
         private:
 
-            CString m_URI;
-            CString m_APIKey;
-            CString m_Naming;
-
-            CDateTime m_HeartbeatInterval;
-
-            CHTTPProxyManager m_ProxyManager;
-
-            CDateTime m_FixedDate;
-            CDateTime m_CheckDate;
-
             CString m_ClientToken;
 
-            TPairs<CStringList> m_Profile;
+            TPairs<CStringList> m_Profiles;
+
+            CHTTPProxyManager m_ProxyManager;
 
             void InitMethods() override;
 
@@ -100,6 +91,8 @@ namespace Apostol {
             }
 
             bool CheckAuthorization(CHTTPServerConnection *AConnection, CAuthorization &Authorization);
+
+            static void InitConfig(const CIniFile &IniFile, const CString &Profile, CStringList &Config);
 
             void Initialization(CModuleProcess *AProcess) override;
 
