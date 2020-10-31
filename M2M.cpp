@@ -376,9 +376,9 @@ namespace Apostol {
             const auto& LProfile = LRequest->Params["profile"];
             const auto& profile = LProfile.IsEmpty() ? "main" : LProfile;
 
-            const auto& uri = m_Profiles[profile].Value()["uri"];
-            const auto& apikey = m_Profiles[profile].Value()["apikey"];
-            const auto& naming = m_Profiles[profile].Value()["naming"];
+            const auto& uri = m_Profiles[profile]["uri"];
+            const auto& apikey = m_Profiles[profile]["apikey"];
+            const auto& naming = m_Profiles[profile]["naming"];
 
             const auto& Action = LRouts[1];
 
