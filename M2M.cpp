@@ -190,13 +190,6 @@ namespace Apostol {
         void CM2M::DoProxyException(CTCPConnection *AConnection, const Delphi::Exception::Exception &E) {
             auto LProxyConnection = dynamic_cast<CHTTPClientConnection *> (AConnection);
             auto LProxy = dynamic_cast<CHTTPProxy *> (LProxyConnection->Client());
-            auto LConnection = LProxy->Connection();
-            auto LReply = LProxyConnection->Reply();
-
-            DebugReply(LReply);
-
-            ExceptionToJson(0, E, LReply->Content);
-            LConnection->SendStockReply(CHTTPReply::internal_server_error, true);
 
             Log()->Error(APP_LOG_EMERG, 0, "[%s:%d] %s", LProxy->Host().c_str(), LProxy->Port(), E.what());
         }
