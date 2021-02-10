@@ -423,7 +423,6 @@ namespace Apostol {
 
         void CM2M::Heartbeat() {
             CApostolModule::Heartbeat();
-            m_ProxyManager.CleanUp();
         }
         //--------------------------------------------------------------------------------------------------------------
 
