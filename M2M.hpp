@@ -56,7 +56,7 @@ namespace Apostol {
 
             CString m_ClientToken;
 
-            TPairs<CStringList> m_Profiles;
+            CStringListPairs m_Profiles;
 
             CHTTPProxyManager m_ProxyManager;
 
