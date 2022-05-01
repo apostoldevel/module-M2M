@@ -421,11 +421,6 @@ namespace Apostol {
         }
         //--------------------------------------------------------------------------------------------------------------
 
-        void CM2M::Heartbeat() {
-            CApostolModule::Heartbeat();
-        }
-        //--------------------------------------------------------------------------------------------------------------
-
         bool CM2M::Enabled() {
             if (m_ModuleStatus == msUnknown)
                 m_ModuleStatus = Config()->IniFile().ReadBool(SectionName().c_str(), "enable", false) ? msEnabled : msDisabled;
