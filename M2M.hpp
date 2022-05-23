@@ -33,28 +33,12 @@ namespace Apostol {
 
         //--------------------------------------------------------------------------------------------------------------
 
-        //-- CSOAPProtocol ---------------------------------------------------------------------------------------------
-
-        //--------------------------------------------------------------------------------------------------------------
-
-        class CSOAPProtocol {
-        public:
-
-            static void JSONToSOAP(const CString &Action, const CJSON &Json, CString &xmlString);
-            static void SOAPToJSON(const CString &Action, const CString &xmlString, CJSON &Json);
-
-        };
-
-        //--------------------------------------------------------------------------------------------------------------
-
         //-- CM2M ------------------------------------------------------------------------------------------------------
 
         //--------------------------------------------------------------------------------------------------------------
 
         class CM2M: public CApostolModule {
         private:
-
-            CString m_ClientToken;
 
             CStringListPairs m_Profiles;
 
@@ -72,10 +56,9 @@ namespace Apostol {
 
             void DoProxy(CHTTPServerConnection *AConnection);
 
-            void DoVerbose(CSocketEvent *Sender, CTCPConnection *AConnection, LPCTSTR AFormat, va_list args);
             bool DoProxyExecute(CTCPConnection *AConnection);
             void DoProxyException(CTCPConnection *AConnection, const Delphi::Exception::Exception &E);
-            void DoEventHandlerException(CPollEventHandler *AHandler, const Delphi::Exception::Exception &E);
+            void DoEventHandlerException(CPollEventHandler *AHandler, const Delphi::Exception::Exception &E) override;
 
             void DoProxyConnected(CObject *Sender);
             void DoProxyDisconnected(CObject *Sender);
