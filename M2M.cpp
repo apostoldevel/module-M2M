@@ -92,7 +92,7 @@ namespace Apostol {
                 pConnection->CloseConnection(true);
 
                 pConnection->Reply()->ContentType = CHTTPReply::json;
-                pConnection->Reply()->Content = pReply->Content;
+                pConnection->Reply()->Content = CJSON(pReply->Content).ToString();
 
                 pConnection->SendReply(pReply->Status, nullptr, true);
             }
