@@ -46,7 +46,7 @@ namespace Apostol {
 
             void InitMethods() override;
 
-            static bool CheckAuthorizationData(CHTTPRequest *ARequest, CAuthorization &Authorization);
+            static bool CheckAuthorizationData(const CHTTPRequest &Request, CAuthorization &Authorization);
 
             void VerifyToken(const CString &Token);
 

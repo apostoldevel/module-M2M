@@ -82,19 +82,19 @@ namespace Apostol {
 
             auto pProxyConnection = dynamic_cast<CHTTPClientConnection*> (AConnection);
             auto pProxy = dynamic_cast<CHTTPProxy*> (pProxyConnection->Client());
-            auto pReply = pProxyConnection->Reply();
+            auto &Reply = pProxyConnection->Reply();
 
-            DebugReply(pReply);
+            DebugReply(Reply);
 
             auto pConnection = pProxy->Connection();
 
             if (pConnection->Connected()) {
                 pConnection->CloseConnection(true);
 
-                pConnection->Reply()->ContentType = CHTTPReply::json;
-                pConnection->Reply()->Content = CJSON(pReply->Content).ToString();
+                pConnection->Reply().ContentType = CHTTPReply::json;
+                pConnection->Reply().Content = CJSON(Reply.Content).ToString();
 
-                pConnection->SendReply(pReply->Status, nullptr, true);
+                pConnection->SendReply(Reply.Status, nullptr, true);
             }
 
             return true;
@@ -199,10 +199,10 @@ namespace Apostol {
         }
         //--------------------------------------------------------------------------------------------------------------
 
-        bool CM2M::CheckAuthorizationData(CHTTPRequest *ARequest, CAuthorization &Authorization) {
+        bool CM2M::CheckAuthorizationData(const CHTTPRequest &Request, CAuthorization &Authorization) {
 
-            const auto &caHeaders = ARequest->Headers;
-            const auto &caCookies = ARequest->Cookies;
+            const auto &caHeaders = Request.Headers;
+            const auto &caCookies = Request.Cookies;
 
             const auto &caAuthorization = caHeaders.Values(_T("Authorization"));
 
@@ -227,10 +227,10 @@ namespace Apostol {
 
         bool CM2M::CheckAuthorization(CHTTPServerConnection *AConnection, CAuthorization &Authorization) {
 
-            auto pRequest = AConnection->Request();
+            const auto &Request = AConnection->Request();
 
             try {
-                if (CheckAuthorizationData(pRequest, Authorization)) {
+                if (CheckAuthorizationData(Request, Authorization)) {
                     if (Authorization.Schema == CAuthorization::asBearer) {
                         VerifyToken(Authorization.Token);
                         return true;
@@ -257,16 +257,16 @@ namespace Apostol {
 
         void CM2M::DoProxy(CHTTPServerConnection *AConnection) {
 
-            auto pRequest = AConnection->Request();
-            auto pReply = AConnection->Reply();
+            const auto &caRequest = AConnection->Request();
+            auto &Reply = AConnection->Reply();
 
-            pReply->ContentType = CHTTPReply::json;
+            Reply.ContentType = CHTTPReply::json;
 
             auto pProxy = GetProxy(AConnection);
-            auto pProxyRequest = pProxy->Request();
+            auto &ProxyRequest = pProxy->Request();
 
             CStringList Routs;
-            SplitColumns(pRequest->Location.pathname, Routs, '/');
+            SplitColumns(caRequest.Location.pathname, Routs, '/');
 
             if (Routs.Count() < 2) {
                 AConnection->SendStockReply(CHTTPReply::not_found);
@@ -277,7 +277,7 @@ namespace Apostol {
             if (!CheckAuthorization(AConnection, caAuthorization))
                 return;
 
-            const auto& profile = pRequest->Params["profile"];
+            const auto& profile = caRequest.Params["profile"];
             const auto& caProfile = profile.empty() ? "main" : profile;
 
             const auto& uri = m_Profiles[caProfile]["uri"];
@@ -293,7 +293,7 @@ namespace Apostol {
             AConnection->CloseConnection(false);
 
             CJSON Json;
-            ContentToJson(pRequest, Json);
+            ContentToJson(caRequest, Json);
 
             CLocation Location(uri + "/" + (caAction == "SendMessage" ? "messages" : caAction));
 
@@ -301,28 +301,28 @@ namespace Apostol {
             pProxy->Port(Location.port);
             pProxy->UsedSSL(Location.port == 443);
 
-            const auto& caContentType = pRequest->Headers.Values("Content-Type");
-            const auto& caUserAgent = pRequest->Headers.Values("User-Agent");
+            const auto& caContentType = caRequest.Headers.Values("Content-Type");
+            const auto& caUserAgent = caRequest.Headers.Values("User-Agent");
 
-            pProxyRequest->Clear();
+            ProxyRequest.Clear();
 
-            pProxyRequest->ContentType = CHTTPRequest::json;
+            ProxyRequest.ContentType = CHTTPRequest::json;
 
-            pProxyRequest->Location = Location;
-            pProxyRequest->UserAgent = caUserAgent;
+            ProxyRequest.Location = Location;
+            ProxyRequest.UserAgent = caUserAgent;
 
-            pProxyRequest->Content = CString().Format(R"({"options": {"from": {"sms_address": "%s"}}, "messages": [{"to": [{"msisdn": "%s"}], "content": {"short_text": "%s"}}]})",
+            ProxyRequest.Content = CString().Format(R"({"options": {"from": {"sms_address": "%s"}}, "messages": [{"to": [{"msisdn": "%s"}], "content": {"short_text": "%s"}}]})",
                                                       naming.c_str(),
                                                       Json["msid"].AsString().c_str(),
                                                       Json["message"].AsString().c_str());
-            pProxyRequest->CloseConnection = true;
+            ProxyRequest.CloseConnection = true;
 
-            CHTTPRequest::Prepare(pProxyRequest, "POST", Location.pathname.c_str());
+            CHTTPRequest::Prepare(ProxyRequest, "POST", Location.pathname.c_str());
             if (!token.IsEmpty()) {
-                pProxyRequest->AddHeader(_T("Authorization"), (auth.empty() ? _T("Bearer") : auth) + " " + token);
+                ProxyRequest.AddHeader(_T("Authorization"), (auth.empty() ? _T("Bearer") : auth) + " " + token);
             }
 
-            DebugRequest(pProxyRequest);
+            DebugRequest(ProxyRequest);
 
             pProxy->Active(true);
         }
